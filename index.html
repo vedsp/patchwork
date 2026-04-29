@@ -1,0 +1,672 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Patchwork — Semantic diff for developers</title>
+    <meta name="description" content="git diff knows lines. Patchwork knows functions. A semantic code diff tool built with tree-sitter.">
+    
+    <!-- Open Graph -->
+    <meta property="og:title" content="Patchwork — Semantic diff for developers">
+    <meta property="og:description" content="git diff knows lines. Patchwork knows functions. A semantic code diff tool built with tree-sitter.">
+    <meta property="og:type" content="website">
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --bg: #0a0a0a;
+            --surface: #111111;
+            --accent: #f59e0b;
+            --text-primary: #ffffff;
+            --text-secondary: #a1a1aa;
+            --text-muted: #71717a;
+            --border: rgba(255, 255, 255, 0.08);
+            --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background-color: var(--bg);
+            color: var(--text-primary);
+            font-family: var(--font-sans);
+            line-height: 1.5;
+            overflow-x: hidden;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        a {
+            color: inherit;
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        /* --- Layout Containers --- */
+        .container {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 0 24px;
+        }
+
+        section {
+            padding: 120px 0;
+            opacity: 0;
+            transform: translateY(24px);
+            transition: opacity 0.6s ease-out, transform 0.6s ease-out;
+        }
+
+        section.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* --- Navbar --- */
+        nav {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 72px;
+            z-index: 1000;
+            transition: border-color 0.3s, backdrop-filter 0.3s;
+            display: flex;
+            align-items: center;
+            transform: translateY(-100%);
+            animation: navFadeIn 0.6s forwards 0.2s;
+        }
+
+        nav.scrolled {
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid var(--border);
+        }
+
+        @keyframes navFadeIn {
+            to { transform: translateY(0); }
+        }
+
+        .nav-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+        }
+
+        .logo {
+            font-family: var(--font-mono);
+            font-weight: 700;
+            color: var(--accent);
+            font-size: 1.2rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .nav-links {
+            display: flex;
+            align-items: center;
+            gap: 32px;
+        }
+
+        .nav-links a:hover {
+            color: var(--accent);
+        }
+
+        .btn-pip-small {
+            border: 1px solid var(--accent);
+            color: var(--accent);
+            padding: 6px 14px;
+            border-radius: 99px;
+            font-size: 0.85rem;
+            font-family: var(--font-mono);
+            transition: background 0.2s, color 0.2s;
+        }
+
+        .btn-pip-small:hover {
+            background: var(--accent);
+            color: #000;
+        }
+
+        /* --- Hero --- */
+        .hero {
+            text-align: center;
+            padding-top: 180px;
+            position: relative;
+        }
+
+        .hero::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 600px;
+            height: 600px;
+            background: radial-gradient(circle, rgba(245, 158, 11, 0.05) 0%, transparent 70%);
+            z-index: -1;
+        }
+
+        .hero h1 {
+            font-size: 64px;
+            line-height: 1.1;
+            font-weight: 800;
+            margin-bottom: 24px;
+            letter-spacing: -0.03em;
+        }
+
+        .hero h1 span {
+            display: block;
+            opacity: 0;
+            transform: translateY(20px);
+            animation: heroLineIn 0.6s forwards;
+        }
+
+        .hero h1 span:first-child { animation-delay: 0.4s; }
+        .hero h1 span.accent { color: var(--accent); animation-delay: 0.55s; }
+
+        @keyframes heroLineIn {
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .hero p {
+            font-size: 20px;
+            color: var(--text-secondary);
+            max-width: 600px;
+            margin: 0 auto 48px auto;
+            opacity: 0;
+            animation: fadeIn 0.8s forwards 0.8s;
+        }
+
+        .hero-ctas {
+            display: flex;
+            justify-content: center;
+            gap: 16px;
+            margin-bottom: 32px;
+            opacity: 0;
+            animation: fadeIn 0.8s forwards 1s;
+        }
+
+        @keyframes fadeIn {
+            to { opacity: 1; }
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            cursor: pointer;
+            transition: transform 0.2s, background 0.2s;
+        }
+
+        .btn:active { transform: scale(0.98); }
+
+        .btn-primary {
+            background: var(--accent);
+            color: #000;
+            font-family: var(--font-mono);
+        }
+
+        .btn-secondary {
+            border: 1px solid var(--border);
+            color: var(--text-primary);
+        }
+
+        .btn-secondary:hover {
+            border-color: rgba(255,255,255,0.2);
+            background: rgba(255,255,255,0.05);
+        }
+
+        .trust-line {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            opacity: 0;
+            animation: fadeIn 0.8s forwards 1.2s;
+        }
+
+        /* --- Problem/Solution --- */
+        .strip {
+            display: flex;
+            gap: 24px;
+            align-items: center;
+            margin-top: 64px;
+        }
+
+        .strip-card {
+            flex: 1;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 24px;
+            text-align: left;
+        }
+
+        .strip-card.featured {
+            border-color: rgba(245, 158, 11, 0.3);
+            box-shadow: 0 0 40px rgba(245, 158, 11, 0.05);
+        }
+
+        .strip-card h4 {
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            margin-bottom: 16px;
+            letter-spacing: 0.1em;
+        }
+
+        .terminal-mock {
+            font-family: var(--font-mono);
+            font-size: 0.85rem;
+            line-height: 1.6;
+        }
+
+        .strip-arrow {
+            color: var(--accent);
+            font-size: 2rem;
+            font-weight: bold;
+        }
+
+        /* --- Feature Grid --- */
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 24px;
+        }
+
+        .feature-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            padding: 32px;
+            border-radius: 12px;
+            transition: transform 0.2s, border-color 0.2s;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-4px);
+            border-color: rgba(245, 158, 11, 0.3);
+        }
+
+        .feature-icon {
+            color: var(--accent);
+            font-size: 1.5rem;
+            margin-bottom: 16px;
+        }
+
+        .feature-card h3 {
+            margin-bottom: 12px;
+            font-size: 1.25rem;
+        }
+
+        .feature-card p {
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+        }
+
+        /* --- How it Works --- */
+        .steps {
+            max-width: 700px;
+            margin: 0 auto;
+            position: relative;
+        }
+
+        .steps::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            left: 20px;
+            width: 1px;
+            background: var(--border);
+        }
+
+        .step {
+            position: relative;
+            padding-left: 64px;
+            margin-bottom: 80px;
+        }
+
+        .step-num {
+            position: absolute;
+            left: 0;
+            width: 40px;
+            height: 40px;
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--accent);
+            font-family: var(--font-mono);
+            z-index: 2;
+        }
+
+        .step h3 {
+            margin-bottom: 8px;
+            font-family: var(--font-mono);
+            color: var(--accent);
+        }
+
+        .step p {
+            color: var(--text-secondary);
+            margin-bottom: 24px;
+        }
+
+        .terminal-block {
+            background: #000;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 20px;
+            font-family: var(--font-mono);
+            font-size: 0.9rem;
+            min-height: 150px;
+            white-space: pre-wrap;
+        }
+
+        /* --- Install --- */
+        .install-box {
+            background: var(--surface);
+            border-top: 2px solid var(--accent);
+            border-radius: 12px;
+            padding: 64px;
+            text-align: center;
+        }
+
+        .install-command {
+            font-size: 2.5rem;
+            font-family: var(--font-mono);
+            margin-bottom: 48px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 20px;
+        }
+
+        .copy-trigger {
+            cursor: pointer;
+            color: var(--text-muted);
+            transition: color 0.2s;
+        }
+
+        .copy-trigger:hover { color: var(--accent); }
+
+        .usage-examples {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 24px;
+            font-family: var(--font-mono);
+            font-size: 0.9rem;
+            color: var(--text-muted);
+        }
+
+        .usage-examples div {
+            opacity: 0;
+            transition: opacity 0.5s;
+        }
+
+        .usage-examples.visible div {
+            opacity: 1;
+        }
+
+        /* --- Footer --- */
+        footer {
+            border-top: 1px solid var(--border);
+            padding: 64px 0;
+        }
+
+        .footer-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 32px;
+        }
+
+        .footer-bottom {
+            text-align: center;
+            color: var(--text-muted);
+            font-size: 0.75rem;
+        }
+
+        /* --- Utils & Responsive --- */
+        .text-red { color: #f87171; }
+        .text-green { color: #4ade80; }
+        .text-yellow { color: #fbbf24; }
+
+        @media (max-width: 768px) {
+            .hero h1 { font-size: 42px; }
+            .grid { grid-template-columns: 1fr; }
+            .strip { flex-direction: column; }
+            .strip-arrow { transform: rotate(90deg); }
+            .nav-links a { display: none; }
+            .install-command { font-size: 1.5rem; }
+            .usage-examples { grid-template-columns: 1fr; gap: 12px; }
+        }
+    </style>
+</head>
+<body>
+
+    <nav id="navbar">
+        <div class="container nav-content">
+            <div class="logo">⬡ PATCHWORK</div>
+            <div class="nav-links">
+                <a href="https://github.com/vedantprabhu/patchwork" target="_blank" rel="noopener">GitHub</a>
+                <a href="https://github.com/vedantprabhu/patchwork" target="_blank" rel="noopener" class="btn-pip-small">pip install</a>
+            </div>
+        </div>
+    </nav>
+
+    <header class="container hero">
+        <h1>
+            <span>git diff knows lines.</span>
+            <span class="accent">Patchwork knows functions.</span>
+        </h1>
+        <p>A semantic diff tool that understands your code — not just your characters. Built with tree-sitter.</p>
+        
+        <div class="hero-ctas">
+            <div class="btn btn-primary" onclick="copyInstall('pip install patchwork-diff', this)">
+                <span class="icon">📋</span>
+                <span class="text">pip install patchwork-diff</span>
+            </div>
+            <a href="https://github.com/vedantprabhu/patchwork" target="_blank" rel="noopener" class="btn btn-secondary">
+                View on GitHub
+            </a>
+        </div>
+        <div class="trust-line">Works with Python & JavaScript · Git-native · TUI included</div>
+
+        <div class="strip">
+            <div class="strip-card">
+                <h4>git diff shows you this</h4>
+                <div class="terminal-mock">
+<span class="text-muted">@@ -12,4 +12,6 @@</span>
+<span class="text-red">- const x = 10;</span>
+<span class="text-red">- return x * 2;</span>
+<span class="text-green">+ const y = 20;</span>
+<span class="text-green">+ return y + 5;</span>
+                </div>
+            </div>
+            <div class="strip-arrow">→</div>
+            <div class="strip-card featured">
+                <h4>Patchwork shows you this</h4>
+                <div class="terminal-mock">
+<span class="text-yellow">~ processData (modified)</span>
+<span class="text-green">+ logger (added)</span>
+<span class="text-red">- validateUser (deleted)</span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <section class="container" id="features">
+        <div class="grid">
+            <div class="feature-card">
+                <div class="feature-icon">⬡</div>
+                <h3>Function-level diffs</h3>
+                <p>Understands what a function is. Shows you only what changed inside it.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">⌥</div>
+                <h3>Git-native</h3>
+                <p>Works with commit hashes, branch names, HEAD~1. No file extraction needed.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">◈</div>
+                <h3>Tree-sitter powered</h3>
+                <p>Built on the same parser used by Neovim, GitHub, and VS Code.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">▣</div>
+                <h3>TUI included</h3>
+                <p>Side-by-side split view in your terminal. Syntax highlighted, keyboard driven.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">◎</div>
+                <h3>Python & JS</h3>
+                <p>Supports Python and JavaScript/TypeScript out of the box.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">⊕</div>
+                <h3>One install</h3>
+                <p><code>pip install patchwork-diff</code> and you're done. No config, no setup.</p>
+            </div>
+        </div>
+    </section>
+
+    <section class="container" id="how-it-works">
+        <div class="steps">
+            <div class="step">
+                <div class="step-num">1</div>
+                <h3>patchwork diff HEAD~1 HEAD app.py</h3>
+                <p>Point it at any two Git refs and a file</p>
+            </div>
+            <div class="step">
+                <div class="step-num">2</div>
+                <h3>Semantic Analysis</h3>
+                <p>Patchwork parses the AST and identifies logic changes.</p>
+                <div class="terminal-block" id="typewriter-terminal"></div>
+            </div>
+            <div class="step">
+                <div class="step-num">3</div>
+                <h3>--tui</h3>
+                <p>Or launch the full split-pane TUI for a visual diff</p>
+            </div>
+        </div>
+    </section>
+
+    <section class="container">
+        <div class="install-box">
+            <div class="install-command">
+                <span>pip install patchwork-diff</span>
+                <span class="copy-trigger" onclick="copyInstall('pip install patchwork-diff', this)">📋</span>
+            </div>
+            <div class="usage-examples" id="usage-grid">
+                <div>patchwork diff old.py new.py</div>
+                <div>patchwork diff HEAD~1 HEAD app.py</div>
+                <div>patchwork show HEAD~1 --tui</div>
+            </div>
+        </div>
+    </section>
+
+    <footer class="container">
+        <div class="footer-content">
+            <div class="logo">⬡ PATCHWORK</div>
+            <div>Built by <a href="https://github.com/vedantprabhu" target="_blank" rel="noopener" style="color: var(--accent)">Vedant Prabhu</a></div>
+            <a href="https://github.com/vedantprabhu/patchwork" target="_blank" rel="noopener">GitHub</a>
+        </div>
+        <div class="footer-bottom">
+            Built with tree-sitter · Open source · MIT license
+        </div>
+    </footer>
+
+    <script>
+        // Scroll animations
+        const observerOptions = {
+            threshold: 0.15
+        };
+
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('visible');
+                    
+                    // Trigger typewriter if it's the terminal section
+                    if (entry.target.id === 'how-it-works') {
+                        startTypewriter();
+                    }
+                    if (entry.target.contains(document.getElementById('usage-grid'))) {
+                        document.getElementById('usage-grid').classList.add('visible');
+                    }
+                }
+            });
+        }, observerOptions);
+
+        document.querySelectorAll('section').forEach(section => {
+            observer.observe(section);
+        });
+
+        // Navbar scroll effect
+        window.addEventListener('scroll', () => {
+            const nav = document.getElementById('navbar');
+            if (window.scrollY > 50) {
+                nav.classList.add('scrolled');
+            } else {
+                nav.classList.remove('scrolled');
+            }
+        });
+
+        // Typewriter Effect
+        const terminalOutput = `Comparing app.py — HEAD~1 → HEAD
+
+~ processData     modified
+  lines 12–24 changed
+
++ logger          added
+  lines 45–52 new
+
+- validateUser    deleted
+  was lines 67–78`;
+
+        let typewriterStarted = false;
+        function startTypewriter() {
+            if (typewriterStarted) return;
+            typewriterStarted = true;
+            
+            const element = document.getElementById('typewriter-terminal');
+            let i = 0;
+            function type() {
+                if (i < terminalOutput.length) {
+                    element.textContent += terminalOutput.charAt(i);
+                    i++;
+                    setTimeout(type, 30);
+                }
+            }
+            type();
+        }
+
+        // Copy Install Script
+        function copyInstall(text, el) {
+            navigator.clipboard.writeText(text).then(() => {
+                const originalContent = el.innerHTML;
+                const textEl = el.querySelector('.text');
+                const iconEl = el.querySelector('.icon') || el;
+                
+                if (textEl) textEl.textContent = 'Copied!';
+                if (iconEl) iconEl.textContent = '✅';
+                
+                setTimeout(() => {
+                    el.innerHTML = originalContent;
+                }, 2000);
+            });
+        }
+    </script>
+</body>
+</html>
