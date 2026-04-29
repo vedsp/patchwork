@@ -1,0 +1,7 @@
+click
+rich
+tree-sitter
+tree-sitter-python
+gitpython
+textual
+tree-sitter-javascript

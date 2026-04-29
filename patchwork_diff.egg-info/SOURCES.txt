@@ -1,0 +1,14 @@
+README.md
+pyproject.toml
+patchwork/__init__.py
+patchwork/__main__.py
+patchwork/cli.py
+patchwork/engine.py
+patchwork/tui.py
+patchwork_diff.egg-info/PKG-INFO
+patchwork_diff.egg-info/SOURCES.txt
+patchwork_diff.egg-info/dependency_links.txt
+patchwork_diff.egg-info/entry_points.txt
+patchwork_diff.egg-info/requires.txt
+patchwork_diff.egg-info/top_level.txt
+tests/test_engine.py
