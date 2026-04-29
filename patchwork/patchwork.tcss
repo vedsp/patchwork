@@ -2,23 +2,61 @@ Screen {
     background: $background;
 }
 
-#sidebar {
-    width: 30;
+/* BRANDING HEADER */
+#header-bar {
+    height: 3;
     background: $surface;
-    border-right: tall $primary;
+    border-bottom: solid $primary-darken-3;
+    align: left middle;
+    padding: 0 2;
 }
 
-#sidebar-title {
+#header-icon {
+    width: 3;
     background: $primary;
-    color: $text;
+    color: white;
+    text-align: center;
+    margin-right: 1;
     text-style: bold;
-    padding: 1;
+}
+
+#branding {
+    width: auto;
+}
+
+#header-filename {
+    width: 1fr;
+    text-align: center;
+    text-style: bold;
+    color: $text-muted;
+}
+
+#header-clock {
+    width: auto;
+    color: $text-muted;
+}
+
+#sidebar {
+    width: 30;
+    background: #f0f0f0;
+    border-right: solid $primary-darken-2;
+}
+
+.-dark-mode #sidebar {
+    background: $surface;
+}
+
+#sidebar-label {
+    color: $text-muted;
+    text-style: bold;
+    padding: 1 2 0 2;
+    margin-bottom: 1;
 }
 
 #filter-input {
     margin: 1;
-    border: none;
     background: $boost;
+    border: tall $primary-darken-3;
 }
 
 #main-view {
@@ -28,19 +66,13 @@ Screen {
 #summary-bar {
     height: 3;
     background: $surface;
-    border-bottom: solid $primary;
+    border-bottom: solid $primary-darken-3;
     align: left middle;
 }
 
-#filename-label {
-    width: 1fr;
-    text-style: bold;
-    padding-left: 2;
-}
-
 #summary-label {
-    width: auto;
-    padding-right: 2;
+    width: 1fr;
+    padding-left: 2;
     color: $text-muted;
 }
 
@@ -51,31 +83,65 @@ Screen {
 .pane-container {
     width: 1fr;
     height: 1fr;
-    border: solid $accent;
+    border: round #aaaaaa;
     margin: 1;
 }
 
-.pane-header {
-    width: 100%;
-    text-align: center;
-    background: $accent;
-    color: $text;
+.-dark-mode .pane-container {
+    border: round $primary;
+}
+
+.pane-label {
     text-style: bold;
-    height: 1;
+    color: $text-muted;
+    background: $surface;
+    border-bottom: solid $primary-darken-2;
+    padding: 0 1;
+    width: 100%;
+}
+
+.code-scroll {
+    height: 1fr;
+    overflow-x: auto;
+    background: $background;
+    scrollbar-color: $primary-darken-1;
+    scrollbar-size: 1 1;
 }
 
 .pane {
-    height: 1fr;
-    overflow: scroll;
+    width: auto;
+    min-width: 100%;
     padding: 1;
 }
 
-FunctionItem {
+ListView > ListItem.--highlight {
+    background: #1a56db;
+    color: white;
+}
+
+/* BRANDING FOOTER */
+#footer-bar {
+    height: 1;
+    background: $surface;
+    color: $text;
     padding: 0 1;
 }
 
-ListView > ListItem.--highlight {
-    background: $accent;
-    color: $text;
-    text-style: bold;
+#footer-hints {
+    width: 1fr;
+}
+
+#footer-credit {
+    width: auto;
+    color: $text-muted;
+    text-style: italic;
+    padding-right: 1;
+}
+
+.-light-mode .pane-container {
+    background: white;
+}
+
+.-dark-mode .pane-container {
+    background: #1e1e1e;
 }

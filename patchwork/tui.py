@@ -1,14 +1,21 @@
 from textual.app import App, ComposeResult
-from textual.widgets import Header, Footer, ListView, ListItem, Static, Label, Input
-from textual.containers import Horizontal, Vertical, Container
+from textual.widgets import ListItem, Static, Label, Input, ListView
+from textual.containers import Horizontal, Vertical, ScrollableContainer
 from textual.reactive import reactive
 from textual.binding import Binding
 from rich.syntax import Syntax
 from rich.text import Text
+from rich.table import Table
 import difflib
+from datetime import datetime
+
+class HeaderIcon(Label):
+    """A dedicated icon button that opens the command palette when clicked."""
+    def on_click(self) -> None:
+        self.app.action_command_palette()
 
 class FunctionItem(ListItem):
-    """A list item representing a changed function with a badge."""
+    """A list item representing a changed function with a colored badge."""
     def __init__(self, name: str, change_type: str):
         super().__init__()
         self.func_name = name
@@ -16,40 +23,49 @@ class FunctionItem(ListItem):
 
     def compose(self) -> ComposeResult:
         badge_map = {
-            "added": "[bold green][added][/]",
-            "deleted": "[bold red][deleted][/]",
-            "modified": "[bold yellow][modified][/]"
+            "added": "[bold green]+[/]",
+            "deleted": "[bold red]-[/]",
+            "modified": "[bold yellow]~[/]"
         }
         yield Label(f"{badge_map.get(self.change_type, '')} {self.func_name}")
 
 class DiffPane(Static):
-    """A widget to display code with line-level highlighting."""
+    """A widget to display code with high-contrast diff highlighting."""
     code = reactive("")
     language = reactive("python")
     highlight_lines = reactive(set())
     theme = reactive("monokai")
     title = reactive("")
+    bg_style = reactive("")
 
     def render(self):
         if not self.code:
             return Text(self.title, style="italic")
         
-        return Syntax(
-            self.code,
-            self.language,
-            theme=self.theme,
-            line_numbers=True,
-            highlight_lines=self.highlight_lines,
-            background_color="default"
-        )
+        table = Table.grid(padding=(0, 1))
+        table.add_column("num", style="#aaaaaa", justify="right", width=4)
+        table.add_column("code")
+        
+        lines = self.code.splitlines()
+        for i, line in enumerate(lines, 1):
+            num_text = Text(str(i))
+            code_text = Text(line)
+            
+            row_style = None
+            if i in self.highlight_lines:
+                row_style = self.bg_style
+            
+            table.add_row(num_text, code_text, style=row_style)
+            
+        return table
 
 class PatchworkApp(App):
     CSS_PATH = "patchwork.tcss"
     
     BINDINGS = [
         Binding("q", "quit", "Quit", show=True),
-        Binding("d", "toggle_dark", "Toggle Dark Mode", show=True),
-        Binding("slash", "focus_filter", "Filter", show=True),
+        Binding("d", "toggle_dark", "Mode", show=True),
+        Binding("slash", "focus_filter", "Search", show=True),
     ]
 
     selected_func = reactive("")
@@ -63,42 +79,58 @@ class PatchworkApp(App):
         self.filename = filename
         self.language = language
         
-        # Flatten all changes into a name -> type mapping
         self.all_changes = {}
         for name in diff_results["added"]: self.all_changes[name] = "added"
         for name in diff_results["deleted"]: self.all_changes[name] = "deleted"
         for name in diff_results["modified"]: self.all_changes[name] = "modified"
-        
         self.func_names = sorted(self.all_changes.keys())
 
     def on_mount(self):
-        self.title = f"Patchwork: {self.filename}"
         if self.func_names:
             self.selected_func = self.func_names[0]
+        self.set_interval(1.0, self.update_clock)
+
+    def update_clock(self):
+        try:
+            clock = self.query_one("#header-clock", Label)
+            clock.update(datetime.now().strftime("%H:%M:%S"))
+        except: pass
 
     def compose(self) -> ComposeResult:
-        yield Header(show_clock=True)
+        with Horizontal(id="header-bar"):
+            # Using our custom clickable widget
+            yield HeaderIcon(" ◈ ", id="header-icon")
+            yield Label("[bold #ffaf00]PATCHWORK[/]", id="branding")
+            yield Label(self.filename, id="header-filename")
+            yield Label("--:--:--", id="header-clock")
+
         with Horizontal():
             with Vertical(id="sidebar"):
-                yield Label(" FUNCTIONS", id="sidebar-title")
-                yield Input(placeholder="Filter ( / )...", id="filter-input")
+                yield Label("FUNCTIONS", id="sidebar-label")
+                yield Input(placeholder="Search functions...", id="filter-input")
                 yield ListView(id="function-list")
+            
             with Vertical(id="main-view"):
                 with Horizontal(id="summary-bar"):
-                    yield Label(f" {self.filename}", id="filename-label")
                     yield Label(self.get_summary_text(), id="summary-label")
+                
                 with Horizontal(id="diff-panes"):
                     with Vertical(classes="pane-container"):
-                        yield Label("OLD", classes="pane-header")
-                        yield DiffPane(id="old-pane", classes="pane")
+                        yield Label("OLD", classes="pane-label")
+                        with ScrollableContainer(classes="code-scroll"):
+                            yield DiffPane(id="old-pane", classes="pane")
                     with Vertical(classes="pane-container"):
-                        yield Label("NEW", classes="pane-header")
-                        yield DiffPane(id="new-pane", classes="pane")
-        yield Footer()
+                        yield Label("NEW", classes="pane-label")
+                        with ScrollableContainer(classes="code-scroll"):
+                            yield DiffPane(id="new-pane", classes="pane")
+        
+        with Horizontal(id="footer-bar"):
+            yield Label("Q [dim]Quit[/]   D [dim]Mode[/]   / [dim]Search[/]", id="footer-hints")
+            yield Label("built by Vedant Prabhu", id="footer-credit")
 
     def get_summary_text(self):
         r = self.diff_results
-        return f"{len(r['modified'])} modified · {len(r['added'])} added · {len(r['deleted'])} deleted "
+        return f" {len(r['modified'])} modified · {len(r['added'])} added · {len(r['deleted'])} deleted"
 
     def watch_filter_query(self, query: str):
         self.update_function_list()
@@ -114,27 +146,29 @@ class PatchworkApp(App):
         
         old_pane.language = self.language
         new_pane.language = self.language
+        
+        syntax_theme = "friendly" if self.theme == "textual-light" else "monokai"
+        old_pane.theme = syntax_theme
+        new_pane.theme = syntax_theme
 
         if self.all_changes[func_name] == "added":
             old_pane.code = ""
-            old_pane.title = "This function did not exist in the old version."
+            old_pane.title = "Function did not exist."
             new_pane.code = new_source
+            new_pane.bg_style = "on dark_green" if self.theme == "textual-dark" else "on #d4f7d4"
             new_pane.highlight_lines = set(range(1, len(new_source.splitlines()) + 1))
         elif self.all_changes[func_name] == "deleted":
             old_pane.code = old_source
+            old_pane.bg_style = "on dark_red" if self.theme == "textual-dark" else "on #ffd7d7"
             old_pane.highlight_lines = set(range(1, len(old_source.splitlines()) + 1))
             new_pane.code = ""
-            new_pane.title = "This function was removed in the new version."
+            new_pane.title = "Function was removed."
         else:
-            # Modified: Calculate line diff
             d = difflib.Differ()
             diff = list(d.compare(old_source.splitlines(), new_source.splitlines()))
             
-            old_lines = []
-            new_lines = []
-            old_highlights = set()
-            new_highlights = set()
-            
+            old_lines, new_lines = [], []
+            old_highlights, new_highlights = set(), set()
             o_idx, n_idx = 1, 1
             for line in diff:
                 if line.startswith(' '):
@@ -152,8 +186,11 @@ class PatchworkApp(App):
                     n_idx += 1
             
             old_pane.code = "\n".join(old_lines)
+            old_pane.bg_style = "on dark_red" if self.theme == "textual-dark" else "on #ffd7d7"
             old_pane.highlight_lines = old_highlights
+            
             new_pane.code = "\n".join(new_lines)
+            new_pane.bg_style = "on dark_green" if self.theme == "textual-dark" else "on #d4f7d4"
             new_pane.highlight_lines = new_highlights
 
     def update_function_list(self):
@@ -163,8 +200,7 @@ class PatchworkApp(App):
             for name in self.func_names:
                 if self.filter_query.lower() in name.lower():
                     list_view.append(FunctionItem(name, self.all_changes[name]))
-        except:
-            pass
+        except: pass
 
     def on_input_changed(self, event: Input.Changed):
         if event.input.id == "filter-input":
@@ -178,4 +214,5 @@ class PatchworkApp(App):
         self.query_one("#filter-input").focus()
 
     def action_toggle_dark(self):
-        self.dark = not self.dark
+        self.theme = "textual-light" if self.theme == "textual-dark" else "textual-dark"
+        self.watch_selected_func(self.selected_func)
