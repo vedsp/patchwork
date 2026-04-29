@@ -8,6 +8,7 @@ from .engine import snapshot, diff_snapshots, line_diff, read_file_at_ref
 from .tui import PatchworkApp
 
 console = Console()
+# Patchwork: A professional semantic code diff tool.
 
 EXTENSION_MAP = {
     '.py': 'python',
