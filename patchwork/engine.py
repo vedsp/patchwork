@@ -12,7 +12,9 @@ LANGUAGES = {
 def read_file_at_ref(repo_path: str, ref: str, file_path: str) -> str:
     repo = git.Repo(repo_path)
     commit = repo.commit(ref)
-    blob = commit.tree / file_path
+    # Ensure forward slashes for Git internal paths
+    git_path = file_path.replace("\\", "/")
+    blob = commit.tree / git_path
     return blob.data_stream.read().decode("utf-8")
 
 def extract_python_functions(root_node, source_bytes):

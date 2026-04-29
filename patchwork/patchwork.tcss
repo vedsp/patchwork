@@ -1,0 +1,81 @@
+Screen {
+    background: $background;
+}
+
+#sidebar {
+    width: 30;
+    background: $surface;
+    border-right: tall $primary;
+}
+
+#sidebar-title {
+    background: $primary;
+    color: $text;
+    text-style: bold;
+    padding: 1;
+}
+
+#filter-input {
+    margin: 1;
+    border: none;
+    background: $boost;
+}
+
+#main-view {
+    width: 1fr;
+}
+
+#summary-bar {
+    height: 3;
+    background: $surface;
+    border-bottom: solid $primary;
+    align: left middle;
+}
+
+#filename-label {
+    width: 1fr;
+    text-style: bold;
+    padding-left: 2;
+}
+
+#summary-label {
+    width: auto;
+    padding-right: 2;
+    color: $text-muted;
+}
+
+#diff-panes {
+    height: 1fr;
+}
+
+.pane-container {
+    width: 1fr;
+    height: 1fr;
+    border: solid $accent;
+    margin: 1;
+}
+
+.pane-header {
+    width: 100%;
+    text-align: center;
+    background: $accent;
+    color: $text;
+    text-style: bold;
+    height: 1;
+}
+
+.pane {
+    height: 1fr;
+    overflow: scroll;
+    padding: 1;
+}
+
+FunctionItem {
+    padding: 0 1;
+}
+
+ListView > ListItem.--highlight {
+    background: $accent;
+    color: $text;
+    text-style: bold;
+}

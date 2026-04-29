@@ -89,7 +89,8 @@ def diff(args, language, tui):
 
     if tui:
         results = diff_snapshots(old_snap, new_snap)
-        app = PatchworkApp(results, old_snap, new_snap)
+        target_file = args[-1] if len(args) == 3 else args[1]
+        app = PatchworkApp(results, old_snap, new_snap, target_file, lang)
         app.run()
     else:
         run_diff_output(old_snap, new_snap)
