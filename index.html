@@ -25,6 +25,7 @@
             --text-secondary: #a1a1aa;
             --text-muted: #71717a;
             --border: rgba(255, 255, 255, 0.08);
+            --border-bright: rgba(255, 255, 255, 0.4);
             --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
         }
@@ -50,7 +51,6 @@
             transition: color 0.2s;
         }
 
-        /* --- Layout Containers --- */
         .container {
             max-width: 1100px;
             margin: 0 auto;
@@ -194,10 +194,6 @@
             animation: fadeIn 0.8s forwards 1s;
         }
 
-        @keyframes fadeIn {
-            to { opacity: 1; }
-        }
-
         .btn {
             padding: 12px 24px;
             border-radius: 8px;
@@ -209,8 +205,6 @@
             transition: transform 0.2s, background 0.2s;
         }
 
-        .btn:active { transform: scale(0.98); }
-
         .btn-primary {
             background: var(--accent);
             color: #000;
@@ -218,12 +212,12 @@
         }
 
         .btn-secondary {
-            border: 1px solid var(--border);
+            border: 1px solid var(--border-bright); /* Fix 2: Brighter border */
             color: var(--text-primary);
         }
 
         .btn-secondary:hover {
-            border-color: rgba(255,255,255,0.2);
+            border-color: rgba(255,255,255,0.6);
             background: rgba(255,255,255,0.05);
         }
 
@@ -234,21 +228,22 @@
             animation: fadeIn 0.8s forwards 1.2s;
         }
 
-        /* --- Problem/Solution --- */
+        /* --- Problem/Solution Strip (Fix 1: Grid Layout) --- */
         .strip {
-            display: flex;
-            gap: 24px;
+            display: grid;
+            grid-template-columns: 1fr auto 1fr;
+            gap: 32px;
             align-items: center;
-            margin-top: 64px;
+            margin-top: 80px;
         }
 
         .strip-card {
-            flex: 1;
             background: var(--surface);
             border: 1px solid var(--border);
             border-radius: 12px;
             padding: 24px;
             text-align: left;
+            height: 100%;
         }
 
         .strip-card.featured {
@@ -296,10 +291,18 @@
             border-color: rgba(245, 158, 11, 0.3);
         }
 
+        /* Fix 3: Icon consistency */
         .feature-icon {
             color: var(--accent);
             font-size: 1.5rem;
             margin-bottom: 16px;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(245, 158, 11, 0.05);
+            border-radius: 8px;
         }
 
         .feature-card h3 {
@@ -362,6 +365,7 @@
             margin-bottom: 24px;
         }
 
+        /* Fix 4: Animated Terminal Cursor */
         .terminal-block {
             background: #000;
             border: 1px solid var(--border);
@@ -371,6 +375,18 @@
             font-size: 0.9rem;
             min-height: 150px;
             white-space: pre-wrap;
+            position: relative;
+        }
+
+        .terminal-block::after {
+            content: '_';
+            animation: blink 1s step-end infinite;
+            color: var(--accent);
+        }
+
+        @keyframes blink {
+            from, to { opacity: 1; }
+            50% { opacity: 0; }
         }
 
         /* --- Install --- */
@@ -437,7 +453,6 @@
             font-size: 0.75rem;
         }
 
-        /* --- Utils & Responsive --- */
         .text-red { color: #f87171; }
         .text-green { color: #4ade80; }
         .text-yellow { color: #fbbf24; }
@@ -445,8 +460,8 @@
         @media (max-width: 768px) {
             .hero h1 { font-size: 42px; }
             .grid { grid-template-columns: 1fr; }
-            .strip { flex-direction: column; }
-            .strip-arrow { transform: rotate(90deg); }
+            .strip { grid-template-columns: 1fr; gap: 16px; }
+            .strip-arrow { transform: rotate(90deg); margin: 0 auto; }
             .nav-links a { display: none; }
             .install-command { font-size: 1.5rem; }
             .usage-examples { grid-template-columns: 1fr; gap: 12px; }
@@ -459,8 +474,8 @@
         <div class="container nav-content">
             <div class="logo">⬡ PATCHWORK</div>
             <div class="nav-links">
-                <a href="https://github.com/vedantprabhu/patchwork" target="_blank" rel="noopener">GitHub</a>
-                <a href="https://github.com/vedantprabhu/patchwork" target="_blank" rel="noopener" class="btn-pip-small">pip install</a>
+                <a href="https://github.com/vedsp/patchwork" target="_blank" rel="noopener">GitHub</a>
+                <a href="https://github.com/vedsp/patchwork" target="_blank" rel="noopener" class="btn-pip-small">pip install</a>
             </div>
         </div>
     </nav>
@@ -477,7 +492,7 @@
                 <span class="icon">📋</span>
                 <span class="text">pip install patchwork-diff</span>
             </div>
-            <a href="https://github.com/vedantprabhu/patchwork" target="_blank" rel="noopener" class="btn btn-secondary">
+            <a href="https://github.com/vedsp/patchwork" target="_blank" rel="noopener" class="btn btn-secondary">
                 View on GitHub
             </a>
         </div>
@@ -579,8 +594,8 @@
     <footer class="container">
         <div class="footer-content">
             <div class="logo">⬡ PATCHWORK</div>
-            <div>Built by <a href="https://github.com/vedantprabhu" target="_blank" rel="noopener" style="color: var(--accent)">Vedant Prabhu</a></div>
-            <a href="https://github.com/vedantprabhu/patchwork" target="_blank" rel="noopener">GitHub</a>
+            <div>Built by <a href="https://github.com/vedsp" target="_blank" rel="noopener" style="color: var(--accent)">Vedant Prabhu</a></div>
+            <a href="https://github.com/vedsp/patchwork" target="_blank" rel="noopener">GitHub</a>
         </div>
         <div class="footer-bottom">
             Built with tree-sitter · Open source · MIT license
@@ -588,7 +603,6 @@
     </footer>
 
     <script>
-        // Scroll animations
         const observerOptions = {
             threshold: 0.15
         };
@@ -597,8 +611,6 @@
             entries.forEach(entry => {
                 if (entry.isIntersecting) {
                     entry.target.classList.add('visible');
-                    
-                    // Trigger typewriter if it's the terminal section
                     if (entry.target.id === 'how-it-works') {
                         startTypewriter();
                     }
@@ -613,7 +625,6 @@
             observer.observe(section);
         });
 
-        // Navbar scroll effect
         window.addEventListener('scroll', () => {
             const nav = document.getElementById('navbar');
             if (window.scrollY > 50) {
@@ -623,7 +634,6 @@
             }
         });
 
-        // Typewriter Effect
         const terminalOutput = `Comparing app.py — HEAD~1 → HEAD
 
 ~ processData     modified
@@ -652,7 +662,6 @@
             type();
         }
 
-        // Copy Install Script
         function copyInstall(text, el) {
             navigator.clipboard.writeText(text).then(() => {
                 const originalContent = el.innerHTML;

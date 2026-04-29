@@ -19,13 +19,19 @@ def read_file_at_ref(repo_path: str, ref: str, file_path: str) -> str:
 
 def extract_python_functions(root_node, source_bytes):
     functions = {}
-    for node in root_node.children:
+    
+    def walk(node):
         if node.type == "function_definition":
             name_node = node.child_by_field_name("name")
             if name_node:
                 func_name = name_node.text.decode("utf-8")
                 func_source = source_bytes[node.start_byte:node.end_byte].decode("utf-8")
                 functions[func_name] = func_source
+        
+        for child in node.children:
+            walk(child)
+
+    walk(root_node)
     return functions
 
 def extract_javascript_functions(root_node, source_bytes):

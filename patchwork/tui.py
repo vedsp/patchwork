@@ -206,6 +206,10 @@ class PatchworkApp(App):
         if event.input.id == "filter-input":
             self.filter_query = event.value
 
+    def on_input_submitted(self, event: Input.Submitted):
+        if event.input.id == "filter-input":
+            self.query_one("#function-list").focus()
+
     def on_list_view_selected(self, event: ListView.Selected):
         if event.item:
             self.selected_func = event.item.func_name
