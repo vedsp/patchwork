@@ -3,8 +3,8 @@ requires = ["setuptools>=61.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "patchwork-diff"
-version = "0.1.0"
+name = "patchwork-semantic-diff"
+version = "0.1.5"
 description = "A semantic code diff tool powered by tree-sitter"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -30,3 +30,6 @@ patchwork = "patchwork.cli:cli"
 
 [tool.setuptools.packages.find]
 include = ["patchwork*"]
+
+[tool.setuptools.package-data]
+patchwork = ["*.tcss"]

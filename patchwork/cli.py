@@ -13,7 +13,9 @@ console = Console()
 EXTENSION_MAP = {
     '.py': 'python',
     '.js': 'javascript',
-    '.ts': 'javascript'
+    '.jsx': 'javascript',
+    '.ts': 'javascript',
+    '.tsx': 'javascript'
 }
 
 def detect_language(file_path, language_override=None):
@@ -24,14 +26,14 @@ def detect_language(file_path, language_override=None):
     if ext in EXTENSION_MAP:
         return EXTENSION_MAP[ext]
     
-    console.print(f"[bold red]Error:[/bold red] Unsupported file type: {ext}")
-    sys.exit(1)
+    # Silently skip if it's not a supported language during bulk operations
+    return None
 
 def find_repo():
     try:
         return git.Repo(os.getcwd(), search_parent_directories=True)
     except git.InvalidGitRepositoryError:
-        console.print("[bold red]Error:[/bold red] Not a git repository (or any of the parent directories).")
+        console.print("[bold red]Error:[/bold red] Not a git repository.")
         sys.exit(1)
 
 @click.group()
@@ -46,23 +48,46 @@ def cli():
 def diff(args, language, tui):
     """Compare two source files or Git refs at the function level."""
     
+    old_snap, new_snap = {}, {}
+    lang = None
+    target_file = ""
+
     if len(args) == 2:
-        old_path, new_path = args
-        lang = detect_language(new_path, language)
+        arg1, arg2 = args
         
-        for f in [old_path, new_path]:
-            if not os.path.exists(f):
-                console.print(f"[bold red]Error:[/bold red] File not found: {f}")
+        # Case A: Two local files
+        if os.path.exists(arg1) and os.path.exists(arg2):
+            lang = detect_language(arg2, language)
+            old_snap = snapshot(file_path=arg1, language=lang)
+            new_snap = snapshot(file_path=arg2, language=lang)
+            target_file = arg2
+        
+        # Case B: One Ref and One local file (Smart Diff)
+        else:
+            repo = find_repo()
+            ref, file_path = arg1, arg2
+            if not os.path.exists(file_path):
+                console.print(f"[bold red]Error:[/bold red] File not found: {file_path}")
                 sys.exit(1)
-        
-        try:
-            old_snap = snapshot(file_path=old_path, language=lang)
-            new_snap = snapshot(file_path=new_path, language=lang)
-        except SyntaxError as e:
-            console.print(f"[bold red]Error:[/bold red] {str(e)}")
-            sys.exit(1)
+            
+            lang = detect_language(file_path, language)
+            repo_root = repo.working_tree_dir
+            rel_path = os.path.relpath(os.path.abspath(file_path), repo_root)
+            
+            try:
+                old_source = read_file_at_ref(repo_root, ref, rel_path)
+                with open(file_path, "r", encoding="utf-8") as f:
+                    new_source = f.read()
+                
+                old_snap = snapshot(source=old_source, language=lang)
+                new_snap = snapshot(source=new_source, language=lang)
+                target_file = file_path
+            except Exception as e:
+                console.print(f"[bold red]Error:[/bold red] {str(e)}")
+                sys.exit(1)
 
     elif len(args) == 3:
+        # Case C: Two Refs and one file
         ref1, ref2, file_path = args
         repo = find_repo()
         repo_root = repo.working_tree_dir
@@ -74,22 +99,16 @@ def diff(args, language, tui):
             new_source = read_file_at_ref(repo_root, ref2, rel_path)
             old_snap = snapshot(source=old_source, language=lang)
             new_snap = snapshot(source=new_source, language=lang)
-        except git.exc.GitCommandError as e:
-            console.print(f"[bold red]Error:[/bold red] Git error: {str(e)}")
-            sys.exit(1)
-        except (KeyError, git.exc.BadName):
-            console.print(f"[bold red]Error:[/bold red] File or Ref error for '{rel_path}'")
-            sys.exit(1)
-        except SyntaxError as e:
+            target_file = file_path
+        except Exception as e:
             console.print(f"[bold red]Error:[/bold red] {str(e)}")
             sys.exit(1)
     else:
-        console.print("[bold red]Error:[/bold red] Usage: patchwork diff [OLD] [NEW] [FILE] or patchwork diff [FILE1] [FILE2]")
+        console.print("[bold red]Error:[/bold red] Usage: patchwork diff [REF1] [REF2] [FILE] or patchwork diff [FILE1] [FILE2]")
         sys.exit(1)
 
     if tui:
         results = diff_snapshots(old_snap, new_snap)
-        target_file = args[-1] if len(args) == 3 else args[1]
         app = PatchworkApp(results, old_snap, new_snap, target_file, lang)
         app.run()
     else:
@@ -98,7 +117,8 @@ def diff(args, language, tui):
 @cli.command()
 @click.argument('ref')
 @click.option('--language', default=None, help='Override language detection')
-def show(ref, language):
+@click.option('--tui', is_flag=True, help='Launch TUI for the first changed file')
+def show(ref, language, tui):
     """Show all semantic changes between REF and HEAD."""
     repo = find_repo()
     repo_root = repo.working_tree_dir
@@ -108,14 +128,13 @@ def show(ref, language):
         head_commit = repo.head.commit
         diffs = commit_ref.diff(head_commit)
         
+        found_first_tui = False
+        
         for d in diffs:
             file_path = d.b_path if d.b_path else d.a_path
-            _, ext = os.path.splitext(file_path)
+            lang = detect_language(file_path, language)
             
-            if ext in EXTENSION_MAP:
-                lang = detect_language(file_path, language)
-                console.print(f"\n[bold blue]FILE: {file_path}[/bold blue]")
-                
+            if lang:
                 try:
                     old_source = read_file_at_ref(repo_root, ref, d.a_path) if d.a_path else ""
                     new_source = read_file_at_ref(repo_root, 'HEAD', d.b_path) if d.b_path else ""
@@ -123,9 +142,20 @@ def show(ref, language):
                     old_snap = snapshot(source=old_source, language=lang) if old_source else {}
                     new_snap = snapshot(source=new_source, language=lang) if new_source else {}
                     
-                    run_diff_output(old_snap, new_snap)
+                    if tui and not found_first_tui:
+                        results = diff_snapshots(old_snap, new_snap)
+                        if results["added"] or results["deleted"] or results["modified"]:
+                            app = PatchworkApp(results, old_snap, new_snap, file_path, lang)
+                            app.run()
+                            found_first_tui = True
+                            continue
+
+                    if not tui:
+                        console.print(f"\n[bold blue]FILE: {file_path}[/bold blue]")
+                        run_diff_output(old_snap, new_snap)
                 except Exception as e:
-                    console.print(f"[yellow]Skipping {file_path}: {str(e)}[/yellow]")
+                    if not tui:
+                        console.print(f"[yellow]Skipping {file_path}: {str(e)}[/yellow]")
                     
     except Exception as e:
         console.print(f"[bold red]Error:[/bold red] {str(e)}")
@@ -133,7 +163,7 @@ def show(ref, language):
 
 def run_diff_output(old_snap, new_snap):
     if old_snap == new_snap:
-        console.print("No changes detected.")
+        console.print("No semantic changes detected.")
         return
 
     results = diff_snapshots(old_snap, new_snap)

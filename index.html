@@ -11,6 +11,9 @@
     <meta property="og:description" content="git diff knows lines. Patchwork knows functions. A semantic code diff tool built with tree-sitter.">
     <meta property="og:type" content="website">
     
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="patchwork_logo.svg">
+    
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -54,7 +57,8 @@
         .container {
             max-width: 1100px;
             margin: 0 auto;
-            padding: 0 24px;
+            padding-left: 24px;
+            padding-right: 24px;
         }
 
         section {
@@ -108,6 +112,12 @@
             display: flex;
             align-items: center;
             gap: 8px;
+        }
+
+        .logo img {
+            height: 28px;
+            width: 28px;
+            border-radius: 4px;
         }
 
         .nav-links {
@@ -434,6 +444,22 @@
             opacity: 1;
         }
 
+        /* --- Demo --- */
+        .demo-container {
+            margin: 0 auto;
+            text-align: center;
+            max-width: 900px;
+        }
+
+        .demo-gif {
+            width: 100%;
+            height: auto;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.5), 0 0 60px rgba(245, 158, 11, 0.1);
+            background: var(--surface);
+        }
+
         /* --- Footer --- */
         footer {
             border-top: 1px solid var(--border);
@@ -444,7 +470,19 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
+            flex-wrap: wrap;
+            gap: 24px;
             margin-bottom: 32px;
+        }
+
+        .footer-links {
+            display: flex;
+            gap: 24px;
+            align-items: center;
+        }
+
+        .footer-links a:hover {
+            color: var(--accent);
         }
 
         .footer-bottom {
@@ -472,7 +510,7 @@
 
     <nav id="navbar">
         <div class="container nav-content">
-            <div class="logo">⬡ PATCHWORK</div>
+            <div class="logo"><img src="patchwork_logo.svg" alt="Patchwork Logo"> PATCHWORK</div>
             <div class="nav-links">
                 <a href="https://github.com/vedsp/patchwork" target="_blank" rel="noopener">GitHub</a>
                 <a href="https://github.com/vedsp/patchwork" target="_blank" rel="noopener" class="btn-pip-small">pip install</a>
@@ -488,9 +526,9 @@
         <p>A semantic diff tool that understands your code — not just your characters. Built with tree-sitter.</p>
         
         <div class="hero-ctas">
-            <div class="btn btn-primary" onclick="copyInstall('pip install patchwork-diff', this)">
+            <div class="btn btn-primary" onclick="copyInstall('pip install patchwork-semantic-diff', this)">
                 <span class="icon">📋</span>
-                <span class="text">pip install patchwork-diff</span>
+                <span class="text">pip install patchwork-semantic-diff</span>
             </div>
             <a href="https://github.com/vedsp/patchwork" target="_blank" rel="noopener" class="btn btn-secondary">
                 View on GitHub
@@ -520,6 +558,12 @@
             </div>
         </div>
     </header>
+
+    <section class="container" id="demo">
+        <div class="demo-container">
+            <img src="patchwork-gif.gif" alt="Patchwork TUI Demo" class="demo-gif" loading="lazy">
+        </div>
+    </section>
 
     <section class="container" id="features">
         <div class="grid">
@@ -551,7 +595,7 @@
             <div class="feature-card">
                 <div class="feature-icon">⊕</div>
                 <h3>One install</h3>
-                <p><code>pip install patchwork-diff</code> and you're done. No config, no setup.</p>
+                <p><code>pip install patchwork-semantic-diff</code> and you're done. No config, no setup.</p>
             </div>
         </div>
     </section>
@@ -580,8 +624,8 @@
     <section class="container">
         <div class="install-box">
             <div class="install-command">
-                <span>pip install patchwork-diff</span>
-                <span class="copy-trigger" onclick="copyInstall('pip install patchwork-diff', this)">📋</span>
+                <span>pip install patchwork-semantic-diff</span>
+                <span class="copy-trigger" onclick="copyInstall('pip install patchwork-semantic-diff', this)">📋</span>
             </div>
             <div class="usage-examples" id="usage-grid">
                 <div>patchwork diff old.py new.py</div>
@@ -593,9 +637,13 @@
 
     <footer class="container">
         <div class="footer-content">
-            <div class="logo">⬡ PATCHWORK</div>
+            <div class="logo"><img src="patchwork_logo.svg" alt="Patchwork Logo"> PATCHWORK</div>
             <div>Built by <a href="https://github.com/vedsp" target="_blank" rel="noopener" style="color: var(--accent)">Vedant Prabhu</a></div>
-            <a href="https://github.com/vedsp/patchwork" target="_blank" rel="noopener">GitHub</a>
+            <div class="footer-links">
+                <a href="https://x.com/VEDANTPRABHU10" target="_blank" rel="noopener">X</a>
+                <a href="https://www.linkedin.com/in/vedsp/" target="_blank" rel="noopener">LinkedIn</a>
+                <a href="https://github.com/vedsp/patchwork" target="_blank" rel="noopener">GitHub</a>
+            </div>
         </div>
         <div class="footer-bottom">
             Built with tree-sitter · Open source · MIT license
